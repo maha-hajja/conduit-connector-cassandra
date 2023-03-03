@@ -1,4 +1,4 @@
-package connectorname
+package cassandra
 
 //go:generate paramgen -output=paramgen_dest.go DestinationConfig
 
@@ -16,10 +16,20 @@ type Destination struct {
 }
 
 type DestinationConfig struct {
-	// Config includes parameters that are the same in the source and destination.
-	Config
-	// DestinationConfigParam must be either yes or no (defaults to yes).
-	DestinationConfigParam string `validate:"inclusion=yes|no" default:"yes"`
+	// The keyspace (similar to a database in a relational database system) that has the table.
+	Keyspace string `json:"keyspace" validate:"required"`
+	// The table name.
+	Table string `json:"table" validate:"required"`
+	// Column name that records should use for their Key fields.
+	KeyColumn string `json:"keyColumn" validate:"required"`
+	// The host to access Cassandra.
+	Host string `json:"host" validate:"required"`
+	// Cassandra’s TCP port.
+	Port string `json:"port" default:"9042"`
+	// Username, only if password auth is turned on for Cassandra.
+	AuthUsername string `json:"auth.username"`
+	// Password, only if password auth is turned on for Cassandra.
+	AuthPassword string `json:"auth.password"`
 }
 
 func NewDestination() sdk.Destination {
@@ -28,27 +38,16 @@ func NewDestination() sdk.Destination {
 }
 
 func (d *Destination) Parameters() map[string]sdk.Parameter {
-	// Parameters is a map of named Parameters that describe how to configure
-	// the Destination. Parameters can be generated from DestinationConfig with
-	// paramgen.
 	return d.config.Parameters()
 }
 
 func (d *Destination) Configure(ctx context.Context, cfg map[string]string) error {
-	// Configure is the first function to be called in a connector. It provides
-	// the connector with the configuration that can be validated and stored.
-	// In case the configuration is not valid it should return an error.
-	// Testing if your connector can reach the configured data source should be
-	// done in Open, not in Configure.
-	// The SDK will validate the configuration and populate default values
-	// before calling Configure. If you need to do more complex validations you
-	// can do them manually here.
-
 	sdk.Logger(ctx).Info().Msg("Configuring Destination...")
 	err := sdk.Util.ParseConfig(cfg, &d.config)
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
+	// validate password and username both exist or don't
 	return nil
 }
 

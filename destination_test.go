@@ -1,14 +1,17 @@
-package connectorname_test
+package cassandra_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
-	connectorname "github.com/conduitio/conduit-connector-connectorname"
+	cassandra "github.com/conduitio-labs/conduit-connector-cassandra"
+	"github.com/gocql/gocql"
 )
 
 func TestTeardown_NoOpen(t *testing.T) {
-	con := connectorname.NewDestination()
+	con := cassandra.NewDestination()
 	err := con.Teardown(context.Background())
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
