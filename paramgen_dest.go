@@ -9,29 +9,29 @@ import (
 
 func (DestinationConfig) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
-		"auth.password": {
+		"auth.basic.password": {
 			Default:     "",
-			Description: "Password, only if password auth is turned on for Cassandra.",
+			Description: "Password, only if basic auth is used.",
 			Type:        sdk.ParameterTypeString,
 			Validations: []sdk.Validation{},
 		},
-		"auth.username": {
+		"auth.basic.username": {
 			Default:     "",
-			Description: "Username, only if password auth is turned on for Cassandra.",
+			Description: "Username, only if basic auth is used.",
 			Type:        sdk.ParameterTypeString,
 			Validations: []sdk.Validation{},
+		},
+		"auth.mechanism": {
+			Default:     "none",
+			Description: "Authentication mechanism used by Cassandra.",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{
+				sdk.ValidationInclusion{List: []string{"none", "basic"}},
+			},
 		},
 		"host": {
 			Default:     "",
 			Description: "The host to access Cassandra.",
-			Type:        sdk.ParameterTypeString,
-			Validations: []sdk.Validation{
-				sdk.ValidationRequired{},
-			},
-		},
-		"keyColumn": {
-			Default:     "",
-			Description: "Column name that records should use for their Key fields.",
 			Type:        sdk.ParameterTypeString,
 			Validations: []sdk.Validation{
 				sdk.ValidationRequired{},
@@ -48,7 +48,7 @@ func (DestinationConfig) Parameters() map[string]sdk.Parameter {
 		"port": {
 			Default:     "9042",
 			Description: "Cassandra’s TCP port.",
-			Type:        sdk.ParameterTypeString,
+			Type:        sdk.ParameterTypeInt,
 			Validations: []sdk.Validation{},
 		},
 		"table": {
