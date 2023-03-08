@@ -63,6 +63,7 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
+	// todo: validate auth params depending on the auth mechanism
 	return nil
 }
 
@@ -75,8 +76,8 @@ func (d *Destination) Open(ctx context.Context) error {
 
 	// todo: check auth mechanism
 	clusterConfig.Authenticator = gocql.PasswordAuthenticator{
-		Username: "",
-		Password: "",
+		Username: d.config.AuthUsername,
+		Password: d.config.AuthPassword,
 	}
 
 	// Connect to the Cassandra cluster
@@ -84,7 +85,7 @@ func (d *Destination) Open(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error connecting to the cassandra cluster: %w", err)
 	}
-	defer session.Close()
+	d.session = session
 	return nil
 }
 
