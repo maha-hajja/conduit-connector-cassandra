@@ -16,7 +16,10 @@ package cassandra_test
 
 import (
 	"context"
+	"fmt"
+	"github.com/gocql/gocql"
 	"testing"
+	"time"
 
 	cassandra "github.com/conduitio-labs/conduit-connector-cassandra"
 )
@@ -27,4 +30,30 @@ func TestTeardown_NoOpen(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
+}
+
+func Test_Maha(t *testing.T) {
+	// Define the Cassandra cluster configuration
+	clusterConfig := gocql.NewCluster("127.0.0.1")
+	clusterConfig.Keyspace = "store"
+	clusterConfig.ConnectTimeout = time.Second * 5
+	clusterConfig.Consistency = gocql.Quorum
+	clusterConfig.Authenticator = gocql.PasswordAuthenticator{
+		Username: "",
+		Password: "",
+	}
+
+	// Connect to the Cassandra cluster
+	session, err := clusterConfig.CreateSession()
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	// Execute a CQL query
+	var result int
+	if err := session.Query("SELECT item_count FROM shopping_cart WHERE userid = ?", "1234").Scan(&result); err != nil {
+		panic(err)
+	}
+	fmt.Println(result)
 }
