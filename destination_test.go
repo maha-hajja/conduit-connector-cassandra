@@ -16,11 +16,7 @@ package cassandra
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
-
-	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
 func TestTeardown_NoOpen(t *testing.T) {
