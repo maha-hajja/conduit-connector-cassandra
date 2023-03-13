@@ -26,9 +26,9 @@ var version = "(devel)"
 func Specification() sdk.Specification {
 	return sdk.Specification{
 		Name:        "cassandra",
-		Summary:     "<describe your connector>",
-		Description: "<describe your connector in detail>",
+		Summary:     "A Cassandra Destination Connector.",
+		Description: "A Conduit destination connector to stream data into Cassandra",
 		Version:     version,
-		Author:      "<your name>",
+		Author:      "Meroxa, Inc.",
 	}
 }

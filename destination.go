@@ -19,7 +19,6 @@ package cassandra
 import (
 	"context"
 	"fmt"
-	"time"
 
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/gocql/gocql"
@@ -30,23 +29,6 @@ type Destination struct {
 
 	config  DestinationConfig
 	session *gocql.Session
-}
-
-type DestinationConfig struct {
-	// The keyspace (similar to a database in a relational database system) that has the table.
-	Keyspace string `json:"keyspace" validate:"required"`
-	// The table name.
-	Table string `json:"table" validate:"required"`
-	// The host to access Cassandra.
-	Host string `json:"host" validate:"required"`
-	// Cassandra’s TCP port.
-	Port int `json:"port" default:"9042"`
-	// Authentication mechanism used by Cassandra.
-	AuthMechanism string `json:"auth.mechanism" validate:"inclusion=none|basic" default:"none"`
-	// Username, only if basic auth is used.
-	AuthUsername string `json:"auth.basic.username"`
-	// Password, only if basic auth is used.
-	AuthPassword string `json:"auth.basic.password"`
 }
 
 func NewDestination() sdk.Destination {
@@ -63,7 +45,9 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
-	// todo: validate auth params depending on the auth mechanism
+	if d.config.AuthMechanism == AuthMechanismBasic && (d.config.AuthUsername == "" || d.config.AuthPassword == "") {
+		return fmt.Errorf("auth.basic.username and auth.basic.password should be provided for basic authentication mechanism")
+	}
 	return nil
 }
 
@@ -71,13 +55,13 @@ func (d *Destination) Open(ctx context.Context) error {
 	// Define the Cassandra cluster configuration
 	clusterConfig := gocql.NewCluster(d.config.Host)
 	clusterConfig.Keyspace = d.config.Keyspace
-	clusterConfig.ConnectTimeout = time.Second * 5
 	clusterConfig.Port = d.config.Port
 
-	// todo: check auth mechanism
-	clusterConfig.Authenticator = gocql.PasswordAuthenticator{
-		Username: d.config.AuthUsername,
-		Password: d.config.AuthPassword,
+	if d.config.AuthMechanism == AuthMechanismBasic {
+		clusterConfig.Authenticator = gocql.PasswordAuthenticator{
+			Username: d.config.AuthUsername,
+			Password: d.config.AuthPassword,
+		}
 	}
 
 	// Connect to the Cassandra cluster

@@ -12,20 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cassandra_test
+package cassandra
 
 import (
 	"context"
 	"fmt"
-	"github.com/gocql/gocql"
 	"testing"
 	"time"
 
-	cassandra "github.com/conduitio-labs/conduit-connector-cassandra"
+	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
 func TestTeardown_NoOpen(t *testing.T) {
-	con := cassandra.NewDestination()
+	con := NewDestination()
 	err := con.Teardown(context.Background())
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
