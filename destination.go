@@ -14,8 +14,6 @@
 
 package cassandra
 
-//go:generate paramgen -output=paramgen_dest.go DestinationConfig
-
 import (
 	"context"
 	"fmt"
@@ -45,8 +43,9 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
-	if d.config.AuthMechanism == AuthMechanismBasic && (d.config.AuthUsername == "" || d.config.AuthPassword == "") {
-		return fmt.Errorf("auth.basic.username and auth.basic.password should be provided for basic authentication mechanism")
+	err = d.config.validateConfig()
+	if err != nil {
+		return fmt.Errorf("invalid config: %w", err)
 	}
 	return nil
 }

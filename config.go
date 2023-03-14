@@ -14,6 +14,8 @@
 
 package cassandra
 
+import "fmt"
+
 //go:generate paramgen -output=paramgen_dest.go DestinationConfig
 
 type DestinationConfig struct {
@@ -37,3 +39,11 @@ const (
 	AuthMechanismBasic = "basic"
 	AuthMechanismNone  = "none"
 )
+
+// validateConfig extra validations needed for destination config.
+func (d *DestinationConfig) validateConfig() error {
+	if d.AuthMechanism == AuthMechanismBasic && (d.AuthUsername == "" || d.AuthPassword == "") {
+		return fmt.Errorf("auth.basic.username and auth.basic.password should be provided for basic authentication mechanism")
+	}
+	return nil
+}
