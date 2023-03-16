@@ -2,8 +2,6 @@
 
 VERSION=$(shell git describe --tags --dirty --always)
 
-VERSION=$(shell git describe --tags --dirty --always)
-
 build:
 	go build -ldflags "-X 'github.com/conduitio-labs/conduit-connector-cassandra.version=${VERSION}'" -o conduit-connector-cassandra cmd/connector/main.go
 
