@@ -1,4 +1,4 @@
-.PHONY: build test test-integration generate install-paramgen
+.PHONY: build test test-integration generate install-paramgen install-tools download
 
 VERSION=$(shell git describe --tags --dirty --always)
 
@@ -20,3 +20,12 @@ generate:
 
 install-paramgen:
 	go install github.com/conduitio/conduit-connector-sdk/cmd/paramgen@latest
+
+download:
+	@echo Download go.mod dependencies
+	@go mod download
+
+install-tools: download
+	@echo Installing tools from tools.go
+	@go list -f '{{ join .Imports "\n" }}' tools.go | xargs -tI % go install %
+	@go mod tidy
