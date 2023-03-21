@@ -17,7 +17,6 @@ package cassandra
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/gocql/gocql"
@@ -28,18 +27,10 @@ type Destination struct {
 
 	config  DestinationConfig
 	session *gocql.Session
+	parser  Parser
 }
 
-const (
-	metadataCassandraTable = "cassandra.table"
-
-	insertQuery = "INSERT INTO %s (%s) VALUES (%s)"
-	updateQuery = "UPDATE %s SET %s WHERE %s"
-	deleteQuery = "DELETE FROM %s WHERE %s"
-
-	setStatementSeparator   = ","
-	whereStatementSeparator = "AND"
-)
+const metadataCassandraTable = "cassandra.table"
 
 func NewDestination() sdk.Destination {
 	return sdk.DestinationWithMiddleware(&Destination{})
@@ -115,8 +106,9 @@ func (d *Destination) Teardown(ctx context.Context) error {
 
 // handleInsert create and execute the cql query to insert a row.
 func (d *Destination) handleInsert(ctx context.Context, record sdk.Record) error {
-	query := d.buildInsertQuery(record)
-	err := query.Exec()
+	table := d.getTableName(record.Metadata)
+	query, vals := d.parser.BuildInsertQuery(record, table)
+	err := d.session.Query(query, vals...).Exec()
 	if err != nil {
 		return fmt.Errorf("error while inserting data: %w", err)
 	}
@@ -126,8 +118,9 @@ func (d *Destination) handleInsert(ctx context.Context, record sdk.Record) error
 
 // handleUpdate create and execute the cql query to update a row.
 func (d *Destination) handleUpdate(ctx context.Context, record sdk.Record) error {
-	query := d.buildUpdateQuery(record)
-	err := query.Exec()
+	table := d.getTableName(record.Metadata)
+	query, vals := d.parser.BuildUpdateQuery(record, table)
+	err := d.session.Query(query, vals...).Exec()
 	if err != nil {
 		return fmt.Errorf("error while updating data: %w", err)
 	}
@@ -137,92 +130,14 @@ func (d *Destination) handleUpdate(ctx context.Context, record sdk.Record) error
 
 // handleDelete create and execute the cql query to delete a row.
 func (d *Destination) handleDelete(ctx context.Context, record sdk.Record) error {
-	query := d.buildDeleteQuery(record)
-	err := query.Exec()
+	table := d.getTableName(record.Metadata)
+	query, vals := d.parser.BuildDeleteQuery(record, table)
+	err := d.session.Query(query, vals...).Exec()
 	if err != nil {
 		return fmt.Errorf("error while deleting data: %w", err)
 	}
 
 	return nil
-}
-
-// getColumnsAndValues returns the key columns and values, and the payload columns and values, each in a slice and in the order mentioned.
-func (d *Destination) getColumnsAndValues(key, payload sdk.StructuredData) ([]string, []interface{}, []string, []interface{}) {
-	var keyColumns []string
-	var keyValues []interface{}
-	var columns []string
-	var values []interface{}
-
-	// range over both the key and payload values
-	for k, v := range key {
-		keyColumns = append(keyColumns, k)
-		keyValues = append(keyValues, v)
-		delete(payload, k) // delete Key from payload if exists
-	}
-
-	for k, v := range payload {
-		columns = append(columns, k)
-		values = append(values, v)
-	}
-
-	return keyColumns, keyValues, columns, values
-}
-
-// buildInsertQuery takes a record, and returns the insert query representing that record.
-func (d *Destination) buildInsertQuery(rec sdk.Record) *gocql.Query {
-	table := d.getTableName(rec.Metadata)
-	keyCols, keyVals, cols, vals := d.getColumnsAndValues(rec.Key.(sdk.StructuredData), rec.Payload.After.(sdk.StructuredData))
-	cols = append(cols, keyCols...)
-	vals = append(vals, keyVals...)
-	query := fmt.Sprintf(insertQuery, table, strings.Join(cols, ", "), d.getPlaceholders(len(cols)))
-	return d.session.Query(query, vals...)
-}
-
-// buildUpdateQuery takes a record, and returns the update query representing that record.
-func (d *Destination) buildUpdateQuery(rec sdk.Record) *gocql.Query {
-	table := d.getTableName(rec.Metadata)
-	keyCols, keyVals, cols, vals := d.getColumnsAndValues(rec.Key.(sdk.StructuredData), rec.Payload.After.(sdk.StructuredData))
-	setStatement := d.pairValuesWithPlaceholder(cols, setStatementSeparator)
-	whereStatement := d.pairValuesWithPlaceholder(keyCols, whereStatementSeparator)
-	vals = append(vals, keyVals...)
-	query := fmt.Sprintf(updateQuery, table, setStatement, whereStatement)
-	return d.session.Query(query, vals...)
-}
-
-// buildDeleteQuery takes a record, and returns the delete query representing that record.
-func (d *Destination) buildDeleteQuery(rec sdk.Record) *gocql.Query {
-	table := d.getTableName(rec.Metadata)
-	keyCols, keyVals, _, _ := d.getColumnsAndValues(rec.Key.(sdk.StructuredData), rec.Payload.After.(sdk.StructuredData))
-	whereStatement := d.pairValuesWithPlaceholder(keyCols, whereStatementSeparator)
-	query := fmt.Sprintf(deleteQuery, table, whereStatement)
-	return d.session.Query(query, keyVals...)
-}
-
-// getPlaceholders returns a string of question marks seperated by a comma with a given length.
-func (d *Destination) getPlaceholders(length int) string {
-	return strings.TrimSuffix(strings.Repeat("?, ", length), ", ")
-}
-
-// getTableName returns the table name from the record metadata, or if that doesn't exist, then it returns the table
-// name from the connector configurations.
-func (d *Destination) getTableName(metadata map[string]string) string {
-	tableName, ok := metadata[metadataCassandraTable]
-	if !ok {
-		return d.config.Table
-	}
-	return tableName
-}
-
-func (d *Destination) pairValuesWithPlaceholder(cols []string, separator string) string {
-	var result string
-	for i := 0; i < len(cols); i++ {
-		result += cols[i] + " = ? " + separator + " "
-	}
-
-	// remove the trailing separator from the resulting string
-	result = strings.TrimSuffix(result, separator+" ")
-
-	return result
 }
 
 // validateStructuredRecord return an error if the record key or payload is not structured.
@@ -236,4 +151,14 @@ func (d *Destination) validateStructuredRecord(record sdk.Record) error {
 		return fmt.Errorf("key should be structured data")
 	}
 	return nil
+}
+
+// getTableName returns the table name from the record metadata, or if that doesn't exist, then it returns the table
+// name from the connector configurations.
+func (d *Destination) getTableName(metadata map[string]string) string {
+	tableName, ok := metadata[metadataCassandraTable]
+	if !ok {
+		return d.config.Table
+	}
+	return tableName
 }
