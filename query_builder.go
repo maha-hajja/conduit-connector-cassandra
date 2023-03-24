@@ -85,11 +85,9 @@ func (q *QueryBuilder) getColumnsAndValues(key, payload sdk.StructuredData) ([]s
 		keyValues = append(keyValues, v)
 	}
 
-	// adding commas at the beginning and end of string, to prevent skipping payload fields that have a key as substring.
-	keyColumnsString := "," + strings.Join(keyColumns, ",") + ","
 	for k, v := range payload {
 		// skip Key from payload if exists
-		if strings.Contains(keyColumnsString, ","+k+",") {
+		if _, ok := key[k]; ok {
 			continue
 		}
 		columns = append(columns, k)
