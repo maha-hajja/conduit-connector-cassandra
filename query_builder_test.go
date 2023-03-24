@@ -15,31 +15,30 @@
 package cassandra
 
 import (
-	"fmt"
 	"testing"
 
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 )
 
-func TestParser_Placeholders(t *testing.T) {
+func TestQueryBuilder_Placeholders(t *testing.T) {
 	is := is.New(t)
-	parser := Parser{}
-	len1 := parser.getPlaceholders(1)
+	builder := QueryBuilder{}
+	len1 := builder.getPlaceholders(1)
 	is.Equal(len1, "?")
-	len3 := parser.getPlaceholders(3)
+	len3 := builder.getPlaceholders(3)
 	is.Equal(len3, "?, ?, ?")
 
 	vals := []string{"one", "two", "three"}
-	out := parser.pairValuesWithPlaceholder(vals, "AND")
+	out := builder.pairValuesWithPlaceholder(vals, "AND")
 	is.Equal(out, "one = ? AND two = ? AND three = ?")
-	out2 := parser.pairValuesWithPlaceholder(vals, ",")
+	out2 := builder.pairValuesWithPlaceholder(vals, ",")
 	is.Equal(out2, "one = ? , two = ? , three = ?")
 }
 
-func TestParser_Insert(t *testing.T) {
+func TestQueryBuilder_Insert(t *testing.T) {
 	is := is.New(t)
-	parser := Parser{}
+	builder := QueryBuilder{}
 	rec := sdk.Record{
 		Key: sdk.StructuredData{"id": "6"},
 		Payload: sdk.Change{
@@ -48,38 +47,38 @@ func TestParser_Insert(t *testing.T) {
 			},
 		},
 	}
-	cql, vals := parser.BuildInsertQuery(rec, "my_table")
+	cql, vals := builder.BuildInsertQuery(rec, "my_table")
 	is.Equal(cql, "INSERT INTO my_table (age, id) VALUES (?, ?)")
 	is.Equal(vals, []interface{}{22, "6"})
 }
 
-func TestParser_Update(t *testing.T) {
+func TestQueryBuilder_Update(t *testing.T) {
 	is := is.New(t)
-	parser := Parser{}
+	builder := QueryBuilder{}
 	rec := sdk.Record{
 		Key: sdk.StructuredData{"id": "6"},
 		Payload: sdk.Change{
 			After: sdk.StructuredData{
 				"age": 33,
+				"id":  "6", // should be ignored
 			},
 		},
 	}
-	cql, vals := parser.BuildUpdateQuery(rec, "my_table")
-	fmt.Println(cql)
+	cql, vals := builder.BuildUpdateQuery(rec, "my_table")
 	is.Equal(cql, "UPDATE my_table SET age = ? WHERE id = ?")
 	is.Equal(vals, []interface{}{33, "6"})
 }
 
-func TestParser_Delete(t *testing.T) {
+func TestQueryBuilder_Delete(t *testing.T) {
 	is := is.New(t)
-	parser := Parser{}
+	builder := QueryBuilder{}
 	rec := sdk.Record{
 		Key: sdk.StructuredData{"id": "6", "id2": "6"},
 		Payload: sdk.Change{
 			After: sdk.StructuredData{},
 		},
 	}
-	cql, vals := parser.BuildDeleteQuery(rec, "my_table")
+	cql, vals := builder.BuildDeleteQuery(rec, "my_table")
 	// key is a map, so we don't guarantee the order
 	is.True(cql == "DELETE FROM my_table WHERE id = ? AND id2 = ?" || cql == "DELETE FROM my_table WHERE id2 = ? AND id = ?")
 	is.Equal(vals, []interface{}{"6", "6"})

@@ -25,9 +25,9 @@ import (
 type Destination struct {
 	sdk.UnimplementedDestination
 
-	config  DestinationConfig
-	session *gocql.Session
-	parser  Parser
+	config       DestinationConfig
+	session      *gocql.Session
+	queryBuilder QueryBuilder
 }
 
 const metadataCassandraTable = "cassandra.table"
@@ -107,7 +107,7 @@ func (d *Destination) Teardown(ctx context.Context) error {
 // handleInsert create and execute the cql query to insert a row.
 func (d *Destination) handleInsert(ctx context.Context, record sdk.Record) error {
 	table := d.getTableName(record.Metadata)
-	query, vals := d.parser.BuildInsertQuery(record, table)
+	query, vals := d.queryBuilder.BuildInsertQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
 	if err != nil {
 		return fmt.Errorf("error while inserting data: %w", err)
@@ -119,7 +119,7 @@ func (d *Destination) handleInsert(ctx context.Context, record sdk.Record) error
 // handleUpdate create and execute the cql query to update a row.
 func (d *Destination) handleUpdate(ctx context.Context, record sdk.Record) error {
 	table := d.getTableName(record.Metadata)
-	query, vals := d.parser.BuildUpdateQuery(record, table)
+	query, vals := d.queryBuilder.BuildUpdateQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
 	if err != nil {
 		return fmt.Errorf("error while updating data: %w", err)
@@ -131,7 +131,7 @@ func (d *Destination) handleUpdate(ctx context.Context, record sdk.Record) error
 // handleDelete create and execute the cql query to delete a row.
 func (d *Destination) handleDelete(ctx context.Context, record sdk.Record) error {
 	table := d.getTableName(record.Metadata)
-	query, vals := d.parser.BuildDeleteQuery(record, table)
+	query, vals := d.queryBuilder.BuildDeleteQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
 	if err != nil {
 		return fmt.Errorf("error while deleting data: %w", err)
