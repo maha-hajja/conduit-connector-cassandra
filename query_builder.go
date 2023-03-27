@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	insertQuery = "INSERT INTO %s (%s) VALUES (%s)"
-	updateQuery = "UPDATE %s SET %s WHERE %s"
+	insertQuery = "INSERT INTO %s (%s) VALUES (%s) IF NOT EXISTS"
+	updateQuery = "UPDATE %s SET %s WHERE %s IF EXISTS"
 	deleteQuery = "DELETE FROM %s WHERE %s"
 
 	setStatementSeparator   = ","
