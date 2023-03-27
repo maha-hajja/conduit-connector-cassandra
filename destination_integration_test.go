@@ -42,7 +42,7 @@ func TestDestination_Write(t *testing.T) {
 		"port": testPort,
 	})
 	// use the simple connect session to setup for the test
-	table := SetupTest(t, session)
+	table := setupTest(t, session)
 
 	destination := NewDestination()
 	err := destination.Configure(ctx, map[string]string{
@@ -157,11 +157,11 @@ func simpleConnect(t *testing.T, cfg map[string]string) *gocql.Session {
 	return session
 }
 
-// SetupTest creates a new keyspace and table and returns its name.
-func SetupTest(t *testing.T, session *gocql.Session) string {
+// setupTest creates a new keyspace and table and inserts a record into the table, returns the table name.
+func setupTest(t *testing.T, session *gocql.Session) string {
 	is := is.New(t)
 
-	table := RandomIdentifier(t)
+	table := randomIdentifier(t)
 
 	query := `
 	CREATE KEYSPACE IF NOT EXISTS %s
@@ -230,7 +230,7 @@ func queryTestTable(session *gocql.Session, table string, id1 any, id2 any) (sdk
 	}, nil
 }
 
-func RandomIdentifier(t *testing.T) string {
+func randomIdentifier(t *testing.T) string {
 	return fmt.Sprintf("conduit_%v_%d",
 		strings.ToLower(t.Name()),
 		time.Now().UnixMicro()%1000)
