@@ -25,9 +25,12 @@ import (
 type Destination struct {
 	sdk.UnimplementedDestination
 
-	config  DestinationConfig
-	session *gocql.Session
+	config       DestinationConfig
+	session      *gocql.Session
+	queryBuilder QueryBuilder
 }
+
+const metadataCassandraTable = "cassandra.table"
 
 func NewDestination() sdk.Destination {
 	return sdk.DestinationWithMiddleware(&Destination{})
@@ -51,6 +54,7 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 }
 
 func (d *Destination) Open(ctx context.Context) error {
+	sdk.Logger(ctx).Info().Msg("Opening the connector.")
 	// Define the Cassandra cluster configuration
 	clusterConfig := gocql.NewCluster(d.config.Host)
 	clusterConfig.Keyspace = d.config.Keyspace
@@ -73,11 +77,24 @@ func (d *Destination) Open(ctx context.Context) error {
 }
 
 func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
-	// Write writes len(r) records from r to the destination right away without
-	// caching. It should return the number of records written from r
-	// (0 <= n <= len(r)) and any error encountered that caused the write to
-	// stop early. Write must return a non-nil error if it returns n < len(r).
-	return 0, nil
+	for i, r := range records {
+		err := d.validateStructuredRecord(r)
+		if err != nil {
+			return i, fmt.Errorf("invalid record format: %w", err)
+		}
+
+		err = sdk.Util.Destination.Route(ctx, r,
+			d.handleInsert, // create
+			d.handleUpdate, // update
+			d.handleDelete, // delete
+			d.handleInsert, // snapshot
+		)
+		if err != nil {
+			return i, err
+		}
+	}
+	sdk.Logger(ctx).Trace().Msgf("%v records written to destination", len(records))
+	return len(records), nil
 }
 
 func (d *Destination) Teardown(ctx context.Context) error {
@@ -85,4 +102,63 @@ func (d *Destination) Teardown(ctx context.Context) error {
 		d.session.Close()
 	}
 	return nil
+}
+
+// handleInsert create and execute the cql query to insert a row.
+func (d *Destination) handleInsert(ctx context.Context, record sdk.Record) error {
+	table := d.getTableName(record.Metadata)
+	query, vals := d.queryBuilder.BuildInsertQuery(record, table)
+	err := d.session.Query(query, vals...).Exec()
+	if err != nil {
+		return fmt.Errorf("error while inserting data: %w", err)
+	}
+
+	return nil
+}
+
+// handleUpdate create and execute the cql query to update a row.
+func (d *Destination) handleUpdate(ctx context.Context, record sdk.Record) error {
+	table := d.getTableName(record.Metadata)
+	query, vals := d.queryBuilder.BuildUpdateQuery(record, table)
+	err := d.session.Query(query, vals...).Exec()
+	if err != nil {
+		return fmt.Errorf("error while updating data: %w", err)
+	}
+
+	return nil
+}
+
+// handleDelete create and execute the cql query to delete a row.
+func (d *Destination) handleDelete(ctx context.Context, record sdk.Record) error {
+	table := d.getTableName(record.Metadata)
+	query, vals := d.queryBuilder.BuildDeleteQuery(record, table)
+	err := d.session.Query(query, vals...).Exec()
+	if err != nil {
+		return fmt.Errorf("error while deleting data: %w", err)
+	}
+
+	return nil
+}
+
+// validateStructuredRecord return an error if the record key or payload is not structured.
+func (d *Destination) validateStructuredRecord(record sdk.Record) error {
+	// check that payload is structured
+	if _, ok := record.Payload.After.(sdk.StructuredData); !ok {
+		return fmt.Errorf("payload should be structured data")
+	}
+	// check that key is structured
+	if _, ok := record.Payload.After.(sdk.StructuredData); !ok {
+		return fmt.Errorf("key should be structured data")
+	}
+	return nil
+}
+
+// getTableName returns the table name from the record metadata, or if that doesn't exist, then it returns the table
+// name from the connector configurations.
+func (d *Destination) getTableName(metadata map[string]string) string {
+	tableName, ok := metadata[metadataCassandraTable]
+	if !ok {
+		return d.config.Table
+	}
+	return tableName
 }
