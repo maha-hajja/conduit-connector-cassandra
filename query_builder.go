@@ -54,7 +54,7 @@ func (q *QueryBuilder) BuildUpdateQuery(rec sdk.Record, table string) (string, [
 
 // BuildDeleteQuery takes a record, and returns the delete query statement and values representing that record.
 func (q *QueryBuilder) BuildDeleteQuery(rec sdk.Record, table string) (string, []interface{}) {
-	keyCols, keyVals, _, _ := q.getColumnsAndValues(rec.Key.(sdk.StructuredData), rec.Payload.After.(sdk.StructuredData))
+	keyCols, keyVals, _, _ := q.getColumnsAndValues(rec.Key.(sdk.StructuredData), nil)
 	whereStatement := q.pairValuesWithPlaceholder(keyCols, whereStatementSeparator)
 	query := fmt.Sprintf(deleteQuery, table, whereStatement)
 	return query, keyVals

@@ -112,7 +112,8 @@ func TestDestination_Write(t *testing.T) {
 			// this record is already in the table
 			Key: sdk.StructuredData{"id1": "1", "id2": 1},
 			Payload: sdk.Change{
-				After: sdk.StructuredData{},
+				// rawData payload for a delete operation should be fine
+				After: sdk.RawData{},
 			},
 		},
 	},
@@ -126,7 +127,7 @@ func TestDestination_Write(t *testing.T) {
 			i, err := destination.Write(ctx, []sdk.Record{tt.record})
 			is.NoErr(err)
 			is.Equal(i, 1)
-			time.Sleep(200 * time.Millisecond)
+			time.Sleep(time.Second)
 
 			got, err := queryTestTable(session, table, id1, id2)
 			switch tt.record.Operation {
@@ -135,6 +136,85 @@ func TestDestination_Write(t *testing.T) {
 				is.Equal(tt.record.Payload.After, got)
 			case sdk.OperationDelete:
 				is.Equal(err, gocql.ErrNotFound)
+			}
+		})
+	}
+}
+
+func TestDestination_Data_Format(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+
+	session := simpleConnect(t, map[string]string{
+		"host": testHost,
+		"port": testPort,
+	})
+	table := setupTest(t, session)
+
+	destination := NewDestination()
+	err := destination.Configure(ctx, map[string]string{
+		"host":     testHost,
+		"port":     testPort,
+		"keyspace": testKeyspace,
+		"table":    table,
+	})
+	is.NoErr(err)
+	err = destination.Open(ctx)
+	is.NoErr(err)
+	defer func() {
+		err := destination.Teardown(ctx)
+		is.NoErr(err)
+	}()
+
+	testCases := []struct {
+		name         string
+		record       sdk.Record
+		wantErr      bool
+		errSubString string
+	}{{
+		name: "rawData payload for a create operation should fail",
+		record: sdk.Record{
+			Operation: sdk.OperationCreate,
+			Key:       sdk.StructuredData{"id1": "1", "id2": 1},
+			Payload: sdk.Change{
+				After: sdk.RawData{},
+			},
+		},
+		wantErr:      true,
+		errSubString: "payload should be structured data",
+	}, {
+		name: "rawData key should fail",
+		record: sdk.Record{
+			Operation: sdk.OperationCreate,
+			Key:       sdk.RawData("id:1"),
+			Payload: sdk.Change{
+				After: sdk.StructuredData{},
+			},
+		},
+		wantErr:      true,
+		errSubString: "key should be structured data",
+	}, {
+		name: "rawData payload for a delete operation should pass",
+		record: sdk.Record{
+			Operation: sdk.OperationDelete,
+			Key:       sdk.StructuredData{"id1": "1", "id2": 1},
+			Payload: sdk.Change{
+				After: sdk.RawData{},
+			},
+		},
+		wantErr: false,
+	},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			i, err := destination.Write(ctx, []sdk.Record{tt.record})
+			if tt.wantErr {
+				is.True(err != nil)
+				is.True(strings.Contains(err.Error(), tt.errSubString))
+				is.Equal(i, 0)
+			} else {
+				is.NoErr(err)
+				is.Equal(i, 1)
 			}
 		})
 	}
