@@ -127,7 +127,7 @@ func TestDestination_Write(t *testing.T) {
 			i, err := destination.Write(ctx, []sdk.Record{tt.record})
 			is.NoErr(err)
 			is.Equal(i, 1)
-			time.Sleep(1 * time.Second)
+			time.Sleep(time.Second)
 
 			got, err := queryTestTable(session, table, id1, id2)
 			switch tt.record.Operation {
