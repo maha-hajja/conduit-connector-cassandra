@@ -142,12 +142,15 @@ func (d *Destination) handleDelete(ctx context.Context, record sdk.Record) error
 
 // validateStructuredRecord return an error if the record key or payload is not structured.
 func (d *Destination) validateStructuredRecord(record sdk.Record) error {
-	// check that payload is structured
-	if _, ok := record.Payload.After.(sdk.StructuredData); !ok {
-		return fmt.Errorf("payload should be structured data")
+	// delete operation doesn't need a structured payload
+	if record.Operation != sdk.OperationDelete {
+		// check that payload is structured
+		if _, ok := record.Payload.After.(sdk.StructuredData); !ok {
+			return fmt.Errorf("payload should be structured data")
+		}
 	}
-	// check that key is structured
-	if _, ok := record.Payload.After.(sdk.StructuredData); !ok {
+	// check that key is structured for all operations
+	if _, ok := record.Key.(sdk.StructuredData); !ok {
 		return fmt.Errorf("key should be structured data")
 	}
 	return nil
