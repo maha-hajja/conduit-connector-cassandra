@@ -48,7 +48,7 @@ func TestQueryBuilder_Insert(t *testing.T) {
 		},
 	}
 	cql, vals := builder.BuildInsertQuery(rec, "my_table")
-	is.Equal(cql, "INSERT INTO my_table (age, id) VALUES (?, ?)")
+	is.Equal(cql, "INSERT INTO my_table (age, id) VALUES (?, ?) IF NOT EXISTS")
 	is.Equal(vals, []interface{}{22, "6"})
 }
 
@@ -65,7 +65,7 @@ func TestQueryBuilder_Update(t *testing.T) {
 		},
 	}
 	cql, vals := builder.BuildUpdateQuery(rec, "my_table")
-	is.Equal(cql, "UPDATE my_table SET age = ? WHERE id = ?")
+	is.Equal(cql, "UPDATE my_table SET age = ? WHERE id = ? IF EXISTS")
 	is.Equal(vals, []interface{}{33, "6"})
 }
 
