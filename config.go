@@ -19,14 +19,12 @@ import "fmt"
 //go:generate paramgen -output=paramgen_dest.go DestinationConfig
 
 type DestinationConfig struct {
-	// The keyspace (similar to a database in a relational database system) that has the table.
+	// The keyspace name that has the table (similar to a database in a relational database system).
 	Keyspace string `json:"keyspace" validate:"required"`
 	// The table name.
 	Table string `json:"table" validate:"required"`
-	// The host to access Cassandra.
-	Host string `json:"host" validate:"required"`
-	// Cassandra’s TCP port.
-	Port int `json:"port" default:"9042"`
+	// Comma separated list of Cassandra nodes' addresses (at least one), ex: 127.0.0.1:9042,127.0.0.2:8080
+	Nodes []string `json:"nodes" validate:"required"`
 	// Authentication mechanism used by Cassandra.
 	AuthMechanism string `json:"auth.mechanism" validate:"inclusion=none|basic" default:"none"`
 	// Username, only if basic auth is used.

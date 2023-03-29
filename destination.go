@@ -56,9 +56,8 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 func (d *Destination) Open(ctx context.Context) error {
 	sdk.Logger(ctx).Info().Msg("Opening the connector.")
 	// Define the Cassandra cluster configuration
-	clusterConfig := gocql.NewCluster(d.config.Host)
+	clusterConfig := gocql.NewCluster(d.config.Nodes...)
 	clusterConfig.Keyspace = d.config.Keyspace
-	clusterConfig.Port = d.config.Port
 
 	if d.config.AuthMechanism == AuthMechanismBasic {
 		clusterConfig.Authenticator = gocql.PasswordAuthenticator{

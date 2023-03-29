@@ -29,27 +29,21 @@ func (DestinationConfig) Parameters() map[string]sdk.Parameter {
 				sdk.ValidationInclusion{List: []string{"none", "basic"}},
 			},
 		},
-		"host": {
-			Default:     "",
-			Description: "The host to access Cassandra.",
-			Type:        sdk.ParameterTypeString,
-			Validations: []sdk.Validation{
-				sdk.ValidationRequired{},
-			},
-		},
 		"keyspace": {
 			Default:     "",
-			Description: "The keyspace (similar to a database in a relational database system) that has the table.",
+			Description: "The keyspace name that has the table (similar to a database in a relational database system).",
 			Type:        sdk.ParameterTypeString,
 			Validations: []sdk.Validation{
 				sdk.ValidationRequired{},
 			},
 		},
-		"port": {
-			Default:     "9042",
-			Description: "Cassandra’s TCP port.",
-			Type:        sdk.ParameterTypeInt,
-			Validations: []sdk.Validation{},
+		"nodes": {
+			Default:     "",
+			Description: "Comma separated list of Cassandra nodes' addresses (at least one), ex: 127.0.0.1:9042,127.0.0.2:8080",
+			Type:        sdk.ParameterTypeString,
+			Validations: []sdk.Validation{
+				sdk.ValidationRequired{},
+			},
 		},
 		"table": {
 			Default:     "",

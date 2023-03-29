@@ -28,8 +28,7 @@ import (
 
 const (
 	testKeyspace = "conduit_test"
-	testHost     = "127.0.0.1"
-	testPort     = "9042"
+	testNodes    = "127.0.0.1:9042"
 )
 
 func TestDestination_Write(t *testing.T) {
@@ -38,16 +37,14 @@ func TestDestination_Write(t *testing.T) {
 
 	// simple connect to get a Cassandra session
 	session := simpleConnect(t, map[string]string{
-		"host": testHost,
-		"port": testPort,
+		"nodes": testNodes,
 	})
 	// use the simple connect session to setup for the test
 	table := setupTest(t, session)
 
 	destination := NewDestination()
 	err := destination.Configure(ctx, map[string]string{
-		"host":     testHost,
-		"port":     testPort,
+		"nodes":    testNodes,
 		"keyspace": testKeyspace,
 		"table":    table,
 	})
@@ -146,15 +143,13 @@ func TestDestination_Data_Format(t *testing.T) {
 	ctx := context.Background()
 
 	session := simpleConnect(t, map[string]string{
-		"host": testHost,
-		"port": testPort,
+		"nodes": testNodes,
 	})
 	table := setupTest(t, session)
 
 	destination := NewDestination()
 	err := destination.Configure(ctx, map[string]string{
-		"host":     testHost,
-		"port":     testPort,
+		"nodes":    testNodes,
 		"keyspace": testKeyspace,
 		"table":    table,
 	})
@@ -225,8 +220,7 @@ func simpleConnect(t *testing.T, cfg map[string]string) *gocql.Session {
 	var config DestinationConfig
 	err := sdk.Util.ParseConfig(cfg, &config)
 	is.NoErr(err)
-	clusterConfig := gocql.NewCluster(config.Host)
-	clusterConfig.Port = config.Port
+	clusterConfig := gocql.NewCluster(config.Nodes...)
 
 	// Connect to the Cassandra cluster
 	session, err := clusterConfig.CreateSession()
