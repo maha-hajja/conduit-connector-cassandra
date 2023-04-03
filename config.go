@@ -14,7 +14,12 @@
 
 package cassandra
 
-import "fmt"
+import (
+	"fmt"
+	"net"
+	"regexp"
+	"strconv"
+)
 
 //go:generate paramgen -output=paramgen_dest.go DestinationConfig
 
@@ -43,5 +48,41 @@ func (d *DestinationConfig) validateConfig() error {
 	if d.AuthMechanism == AuthMechanismBasic && (d.AuthUsername == "" || d.AuthPassword == "") {
 		return fmt.Errorf("auth.basic.username and auth.basic.password should be provided for basic authentication mechanism")
 	}
+	err := d.validateNodes()
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func (d *DestinationConfig) validateNodes() error {
+	var err error
+	for _, n := range d.Nodes {
+		err = d.validateHostPort(n)
+		if err != nil {
+			return fmt.Errorf("invalid node format %q: %w", n, err)
+		}
+	}
+	return nil
+}
+
+func (d *DestinationConfig) validateHost(host string) error {
+	hostRegexRFC952 := regexp.MustCompile(`^[a-zA-Z]([a-zA-Z0-9\-]+[\.]?)*[a-zA-Z0-9]$`)
+	hostRegexRFC1123 := regexp.MustCompile(`^([a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62}){1}(\.[a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62})*?$`)
+	if !hostRegexRFC1123.MatchString(host) && !hostRegexRFC952.MatchString(host) {
+		return fmt.Errorf("invalid hostname format")
+	}
+	return nil
+}
+
+func (d *DestinationConfig) validateHostPort(hostport string) error {
+	host, port, err := net.SplitHostPort(hostport)
+	if err != nil {
+		return fmt.Errorf("invalid host:port format: %w", err)
+	}
+	// Port should be <= 65535 and >=1.
+	if portNum, err := strconv.ParseInt(port, 10, 32); err != nil || portNum > 65535 || portNum < 1 {
+		return fmt.Errorf("invalid port value, should be an int between 1 and 65535")
+	}
+	return d.validateHost(host)
 }

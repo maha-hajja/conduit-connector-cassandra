@@ -65,3 +65,79 @@ func TestConfig_AuthMechanism(t *testing.T) {
 		})
 	}
 }
+
+func TestConfig_Nodes(t *testing.T) {
+	testCases := []struct {
+		name    string
+		config  DestinationConfig
+		wantErr bool
+	}{{
+		name: "port is greater than 65535",
+		config: DestinationConfig{
+			Nodes: []string{
+				"127.0.0.1:99999",
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "port is lower than 1",
+		config: DestinationConfig{
+			Nodes: []string{
+				"127.0.0.1:0",
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "port is not integer",
+		config: DestinationConfig{
+			Nodes: []string{
+				"127.0.0.1:conduit",
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "invalid host, ends with .",
+		config: DestinationConfig{
+			Nodes: []string{
+				"conduit.io.:8080",
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "localhost",
+		config: DestinationConfig{
+			Nodes: []string{
+				"localhost:8080",
+			},
+		},
+		wantErr: false,
+	}, {
+		name: "valid host_port",
+		config: DestinationConfig{
+			Nodes: []string{
+				"127.0.0.1:9042",
+			},
+		},
+		wantErr: false,
+	}, {
+		name: "invalid hostport, ends with .",
+		config: DestinationConfig{
+			Nodes: []string{
+				"127.0.0.1.:9042",
+			},
+		},
+		wantErr: true,
+	},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			is := is.New(t)
+			err := tt.config.validateConfig()
+			if tt.wantErr {
+				is.True(err != nil)
+				return
+			}
+			is.NoErr(err)
+		})
+	}
+}
