@@ -45,6 +45,10 @@ CREATE TABLE table_name ( id int NOT NULL, name varchar(255), full_time bool, sa
 | `auth.basic.username` | Username, required only if `basic` auth mechanism is used. | false     |          |
 | `auth.basic.password` | Password, required only if `basic` auth mechanism is used. | false     |          |
 
+### Table name
+If a record contains a `cassandra.table` property in its metadata it will be inserted in that table, otherwise it will 
+fall back to use the table configured in the connector. Thus, a Destination can support multiple tables in a single 
+connector.
 
 ## Example pipeline configuration file
 ```yaml
