@@ -19,6 +19,7 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 //go:generate paramgen -output=paramgen_dest.go DestinationConfig
@@ -43,6 +44,8 @@ const (
 	AuthMechanismNone  = "none"
 )
 
+var hostRegexRFC1123 = regexp.MustCompile(`^([a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62}){1}(\.[a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62})*?$`)
+
 // validateConfig extra validations needed for destination config.
 func (d *DestinationConfig) validateConfig() error {
 	if d.AuthMechanism == AuthMechanismBasic && (d.AuthUsername == "" || d.AuthPassword == "") {
@@ -58,7 +61,13 @@ func (d *DestinationConfig) validateConfig() error {
 func (d *DestinationConfig) validateNodes() error {
 	var err error
 	for _, n := range d.Nodes {
-		err = d.validateHostPort(n)
+		// if it's a host:port format
+		if strings.Contains(n, ":") {
+			err = d.validateHostPort(n)
+		} else {
+			// hostname alone is valid
+			err = d.validateHost(n)
+		}
 		if err != nil {
 			return fmt.Errorf("invalid node format %q: %w", n, err)
 		}
@@ -67,9 +76,7 @@ func (d *DestinationConfig) validateNodes() error {
 }
 
 func (d *DestinationConfig) validateHost(host string) error {
-	hostRegexRFC952 := regexp.MustCompile(`^[a-zA-Z]([a-zA-Z0-9\-]+[\.]?)*[a-zA-Z0-9]$`)
-	hostRegexRFC1123 := regexp.MustCompile(`^([a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62}){1}(\.[a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62})*?$`)
-	if !hostRegexRFC1123.MatchString(host) && !hostRegexRFC952.MatchString(host) {
+	if !hostRegexRFC1123.MatchString(host) {
 		return fmt.Errorf("invalid hostname format")
 	}
 	return nil
@@ -82,7 +89,7 @@ func (d *DestinationConfig) validateHostPort(hostport string) error {
 	}
 	// Port should be <= 65535 and >=1.
 	if portNum, err := strconv.ParseInt(port, 10, 32); err != nil || portNum > 65535 || portNum < 1 {
-		return fmt.Errorf("invalid port value, should be an int between 1 and 65535")
+		return fmt.Errorf("invalid port value %q, should be an int between 1 and 65535", portNum)
 	}
 	return d.validateHost(host)
 }

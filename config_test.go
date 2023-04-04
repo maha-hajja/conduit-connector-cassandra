@@ -96,7 +96,7 @@ func TestConfig_Nodes(t *testing.T) {
 		},
 		wantErr: true,
 	}, {
-		name: "invalid host, ends with .",
+		name: "invalid host with port, ends with .",
 		config: DestinationConfig{
 			Nodes: []string{
 				"conduit.io.:8080",
@@ -116,6 +116,7 @@ func TestConfig_Nodes(t *testing.T) {
 		config: DestinationConfig{
 			Nodes: []string{
 				"127.0.0.1:9042",
+				"localhost:9042",
 			},
 		},
 		wantErr: false,
@@ -124,6 +125,23 @@ func TestConfig_Nodes(t *testing.T) {
 		config: DestinationConfig{
 			Nodes: []string{
 				"127.0.0.1.:9042",
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "host without port is valid",
+		config: DestinationConfig{
+			Nodes: []string{
+				"localhost",
+				"127.0.0.1",
+			},
+		},
+		wantErr: false,
+	}, {
+		name: "invalid host, ends with .",
+		config: DestinationConfig{
+			Nodes: []string{
+				"localhost..",
 			},
 		},
 		wantErr: true,
