@@ -83,9 +83,9 @@ check [connectors](https://github.com/ConduitIO/conduit#connectors) for more det
  for more details about how to run this pipeline.
 
 ## Known Issues & Limitations
-* Supports only structured data format key and payload. If your data is raw and json formatted, then you can use
-[conduit's builtin processor](https://github.com/ConduitIO/conduit/blob/main/pkg/processor/procbuiltin/parsejson.go) 
-  `parsejsonpayload` or `parsejsonkey` to parse your json data into structured data.
+* Supports only structured data format for the key and payload. If your data is raw and JSON formatted, then you can use
+conduit's builtin processor [parsejsonpayload](https://conduit.io/docs/processors/builtin/)
+  or [parsejsonkey](https://conduit.io/docs/processors/builtin/) to parse your json data into structured data.
 
 ## Planned work
 * Support raw data formats for keys and payloads.
