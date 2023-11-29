@@ -2,6 +2,8 @@ module github.com/conduitio-labs/conduit-connector-cassandra
 
 go 1.21
 
+toolchain go1.21.1
+
 require (
 	github.com/conduitio/conduit-connector-sdk v0.7.2
 	github.com/gocql/gocql v1.6.0
