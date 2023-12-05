@@ -96,7 +96,7 @@ func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, err
 	return len(records), nil
 }
 
-func (d *Destination) Teardown(ctx context.Context) error {
+func (d *Destination) Teardown(context.Context) error {
 	if d.session != nil {
 		d.session.Close()
 	}
@@ -104,7 +104,7 @@ func (d *Destination) Teardown(ctx context.Context) error {
 }
 
 // handleInsert create and execute the cql query to insert a row.
-func (d *Destination) handleInsert(ctx context.Context, record sdk.Record) error {
+func (d *Destination) handleInsert(_ context.Context, record sdk.Record) error {
 	table := d.getTableName(record.Metadata)
 	query, vals := d.queryBuilder.BuildInsertQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
@@ -116,7 +116,7 @@ func (d *Destination) handleInsert(ctx context.Context, record sdk.Record) error
 }
 
 // handleUpdate create and execute the cql query to update a row.
-func (d *Destination) handleUpdate(ctx context.Context, record sdk.Record) error {
+func (d *Destination) handleUpdate(_ context.Context, record sdk.Record) error {
 	table := d.getTableName(record.Metadata)
 	query, vals := d.queryBuilder.BuildUpdateQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
@@ -128,7 +128,7 @@ func (d *Destination) handleUpdate(ctx context.Context, record sdk.Record) error
 }
 
 // handleDelete create and execute the cql query to delete a row.
-func (d *Destination) handleDelete(ctx context.Context, record sdk.Record) error {
+func (d *Destination) handleDelete(_ context.Context, record sdk.Record) error {
 	table := d.getTableName(record.Metadata)
 	query, vals := d.queryBuilder.BuildDeleteQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
