@@ -202,6 +202,7 @@ func TestDestination_Data_Format(t *testing.T) {
 	}
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
+			is := is.New(t)
 			i, err := destination.Write(ctx, []sdk.Record{tt.record})
 			if tt.wantErr {
 				is.True(err != nil)
