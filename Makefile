@@ -1,13 +1,14 @@
-.PHONY: build test test-integration generate install-paramgen install-tools download
-
 VERSION=$(shell git describe --tags --dirty --always)
 
+.PHONY: build
 build:
 	go build -ldflags "-X 'github.com/conduitio-labs/conduit-connector-cassandra.version=${VERSION}'" -o conduit-connector-cassandra cmd/connector/main.go
 
+.PHONY: test
 test:
 	go test $(GOTEST_FLAGS) -race ./...
 
+.PHONY: test-integration
 test-integration:
 	# run required docker containers, execute integration tests, stop containers after tests
 	docker compose -f test/docker-compose.yml up -d --wait
@@ -15,17 +16,15 @@ test-integration:
 		docker compose -f test/docker-compose.yml down; \
 		exit $$ret
 
+.PHONY: generate
 generate:
 	go generate ./...
 
-install-paramgen:
-	go install github.com/conduitio/conduit-connector-sdk/cmd/paramgen@latest
+.PHONY: lint
+lint:
+	golangci-lint run
 
-download:
-	@echo Download go.mod dependencies
-	@go mod download
-
-install-tools: download
+install-tools:
 	@echo Installing tools from tools.go
-	@go list -e -f '{{ join .Imports "\n" }}' tools.go | xargs -tI % go install %
+	@go list -e -f '{{ join .Imports "\n" }}' tools.go | xargs -I % go list -f "%@{{.Module.Version}}" % | xargs -tI % go install %
 	@go mod tidy
