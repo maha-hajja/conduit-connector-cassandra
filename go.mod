@@ -5,7 +5,6 @@ go 1.22.2
 require (
 	github.com/conduitio/conduit-connector-sdk v0.9.1
 	github.com/gocql/gocql v1.6.0
-	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.59.1
 	github.com/matryer/is v1.4.1
 )
