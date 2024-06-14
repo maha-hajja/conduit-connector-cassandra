@@ -18,6 +18,5 @@ package cassandra
 
 import (
 	_ "github.com/conduitio/conduit-connector-sdk/cmd/paramgen"
-	_ "github.com/golang/mock/mockgen"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 )
