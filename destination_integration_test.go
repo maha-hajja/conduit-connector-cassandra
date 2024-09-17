@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build integration
+
 package cassandra
 
 import (
@@ -21,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/gocql/gocql"
 	"github.com/matryer/is"
 )
@@ -36,9 +38,7 @@ func TestDestination_Write(t *testing.T) {
 	ctx := context.Background()
 
 	// simple connect to get a Cassandra session
-	session := simpleConnect(t, map[string]string{
-		"nodes": testNodes,
-	})
+	session := simpleConnect(t)
 	// use the simple connect session to setup for the test
 	table := setupTest(t, session)
 
@@ -58,15 +58,15 @@ func TestDestination_Write(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		record sdk.Record
+		record opencdc.Record
 	}{{
 		name: "snapshot operation to insert query",
-		record: sdk.Record{
-			Position:  sdk.Position("foo"),
-			Operation: sdk.OperationSnapshot,
-			Key:       sdk.StructuredData{"id1": "6", "id2": 6},
-			Payload: sdk.Change{
-				After: sdk.StructuredData{
+		record: opencdc.Record{
+			Position:  opencdc.Position("foo"),
+			Operation: opencdc.OperationSnapshot,
+			Key:       opencdc.StructuredData{"id1": "6", "id2": 6},
+			Payload: opencdc.Change{
+				After: opencdc.StructuredData{
 					"column1": 22,
 					"column2": false,
 					// match the precision that Cassandra uses for timestamp.
@@ -76,11 +76,11 @@ func TestDestination_Write(t *testing.T) {
 		},
 	}, {
 		name: "create operation to insert query",
-		record: sdk.Record{
-			Operation: sdk.OperationCreate,
-			Key:       sdk.StructuredData{"id1": "7", "id2": 7},
-			Payload: sdk.Change{
-				After: sdk.StructuredData{
+		record: opencdc.Record{
+			Operation: opencdc.OperationCreate,
+			Key:       opencdc.StructuredData{"id1": "7", "id2": 7},
+			Payload: opencdc.Change{
+				After: opencdc.StructuredData{
 					"column1": 33,
 					"column2": true,
 					"column3": time.Now().UTC().Truncate(time.Millisecond),
@@ -89,13 +89,13 @@ func TestDestination_Write(t *testing.T) {
 		},
 	}, {
 		name: "update operation",
-		record: sdk.Record{
-			Position:  sdk.Position("foo"),
-			Operation: sdk.OperationUpdate,
+		record: opencdc.Record{
+			Position:  opencdc.Position("foo"),
+			Operation: opencdc.OperationUpdate,
 			// this record is already in the table
-			Key: sdk.StructuredData{"id1": "1", "id2": 1},
-			Payload: sdk.Change{
-				After: sdk.StructuredData{
+			Key: opencdc.StructuredData{"id1": "1", "id2": 1},
+			Payload: opencdc.Change{
+				After: opencdc.StructuredData{
 					"column1": 44,
 					"column2": false,
 					"column3": time.Now().UTC().Truncate(time.Millisecond),
@@ -104,13 +104,13 @@ func TestDestination_Write(t *testing.T) {
 		},
 	}, {
 		name: "delete operation",
-		record: sdk.Record{
-			Operation: sdk.OperationDelete,
+		record: opencdc.Record{
+			Operation: opencdc.OperationDelete,
 			// this record is already in the table
-			Key: sdk.StructuredData{"id1": "1", "id2": 1},
-			Payload: sdk.Change{
+			Key: opencdc.StructuredData{"id1": "1", "id2": 1},
+			Payload: opencdc.Change{
 				// rawData payload for a delete operation should be fine
-				After: sdk.RawData{},
+				After: opencdc.RawData{},
 			},
 		},
 	},
@@ -118,20 +118,20 @@ func TestDestination_Write(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			is = is.New(t)
-			id1 := tt.record.Key.(sdk.StructuredData)["id1"]
-			id2 := tt.record.Key.(sdk.StructuredData)["id2"]
+			id1 := tt.record.Key.(opencdc.StructuredData)["id1"]
+			id2 := tt.record.Key.(opencdc.StructuredData)["id2"]
 
-			i, err := destination.Write(ctx, []sdk.Record{tt.record})
+			i, err := destination.Write(ctx, []opencdc.Record{tt.record})
 			is.NoErr(err)
 			is.Equal(i, 1)
 			time.Sleep(time.Second)
 
 			got, err := queryTestTable(session, table, id1, id2)
 			switch tt.record.Operation {
-			case sdk.OperationCreate, sdk.OperationSnapshot, sdk.OperationUpdate:
+			case opencdc.OperationCreate, opencdc.OperationSnapshot, opencdc.OperationUpdate:
 				is.NoErr(err)
 				is.Equal(tt.record.Payload.After, got)
-			case sdk.OperationDelete:
+			case opencdc.OperationDelete:
 				is.Equal(err, gocql.ErrNotFound)
 			}
 		})
@@ -142,9 +142,7 @@ func TestDestination_Data_Format(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 
-	session := simpleConnect(t, map[string]string{
-		"nodes": testNodes,
-	})
+	session := simpleConnect(t)
 	table := setupTest(t, session)
 
 	destination := NewDestination()
@@ -163,38 +161,38 @@ func TestDestination_Data_Format(t *testing.T) {
 
 	testCases := []struct {
 		name         string
-		record       sdk.Record
+		record       opencdc.Record
 		wantErr      bool
 		errSubString string
 	}{{
 		name: "rawData payload for a create operation should fail",
-		record: sdk.Record{
-			Operation: sdk.OperationCreate,
-			Key:       sdk.StructuredData{"id1": "1", "id2": 1},
-			Payload: sdk.Change{
-				After: sdk.RawData{},
+		record: opencdc.Record{
+			Operation: opencdc.OperationCreate,
+			Key:       opencdc.StructuredData{"id1": "1", "id2": 1},
+			Payload: opencdc.Change{
+				After: opencdc.RawData{},
 			},
 		},
 		wantErr:      true,
 		errSubString: "payload should be structured data",
 	}, {
 		name: "rawData key should fail",
-		record: sdk.Record{
-			Operation: sdk.OperationCreate,
-			Key:       sdk.RawData("id:1"),
-			Payload: sdk.Change{
-				After: sdk.StructuredData{},
+		record: opencdc.Record{
+			Operation: opencdc.OperationCreate,
+			Key:       opencdc.RawData("id:1"),
+			Payload: opencdc.Change{
+				After: opencdc.StructuredData{},
 			},
 		},
 		wantErr:      true,
 		errSubString: "key should be structured data",
 	}, {
 		name: "rawData payload for a delete operation should pass",
-		record: sdk.Record{
-			Operation: sdk.OperationDelete,
-			Key:       sdk.StructuredData{"id1": "1", "id2": 1},
-			Payload: sdk.Change{
-				After: sdk.RawData{},
+		record: opencdc.Record{
+			Operation: opencdc.OperationDelete,
+			Key:       opencdc.StructuredData{"id1": "1", "id2": 1},
+			Payload: opencdc.Change{
+				After: opencdc.RawData{},
 			},
 		},
 		wantErr: false,
@@ -203,7 +201,7 @@ func TestDestination_Data_Format(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			is := is.New(t)
-			i, err := destination.Write(ctx, []sdk.Record{tt.record})
+			i, err := destination.Write(ctx, []opencdc.Record{tt.record})
 			if tt.wantErr {
 				is.True(err != nil)
 				is.True(strings.Contains(err.Error(), tt.errSubString))
@@ -216,12 +214,12 @@ func TestDestination_Data_Format(t *testing.T) {
 	}
 }
 
-func simpleConnect(t *testing.T, cfg map[string]string) *gocql.Session {
+func simpleConnect(t *testing.T) *gocql.Session {
+	t.Helper()
+
 	is := is.New(t)
-	var config DestinationConfig
-	err := sdk.Util.ParseConfig(cfg, &config)
-	is.NoErr(err)
-	clusterConfig := gocql.NewCluster(config.Nodes...)
+
+	clusterConfig := gocql.NewCluster(strings.Split(testNodes, ",")...)
 
 	// Connect to the Cassandra cluster
 	session, err := clusterConfig.CreateSession()
@@ -285,7 +283,7 @@ func setupTest(t *testing.T, session *gocql.Session) string {
 	return table
 }
 
-func queryTestTable(session *gocql.Session, table string, id1 any, id2 any) (sdk.StructuredData, error) {
+func queryTestTable(session *gocql.Session, table string, id1 any, id2 any) (opencdc.StructuredData, error) {
 	var (
 		column1 int
 		column2 bool
@@ -298,7 +296,7 @@ func queryTestTable(session *gocql.Session, table string, id1 any, id2 any) (sdk
 		return nil, err
 	}
 
-	return sdk.StructuredData{
+	return opencdc.StructuredData{
 		"column1": column1,
 		"column2": column2,
 		"column3": column3,

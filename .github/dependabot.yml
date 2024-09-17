@@ -17,3 +17,10 @@ updates:
       interval: "daily"
     commit-message:
       prefix: "go.mod:"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "docker:"

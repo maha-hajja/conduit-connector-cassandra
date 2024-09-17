@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 )
 
 const (
@@ -34,8 +34,8 @@ const (
 type QueryBuilder struct{}
 
 // BuildInsertQuery takes a record, and returns the insert query statement and values representing that record.
-func (q *QueryBuilder) BuildInsertQuery(rec sdk.Record, table string) (string, []interface{}) {
-	keyCols, keyVals, cols, vals := q.getColumnsAndValues(rec.Key.(sdk.StructuredData), rec.Payload.After.(sdk.StructuredData))
+func (q *QueryBuilder) BuildInsertQuery(rec opencdc.Record, table string) (string, []interface{}) {
+	keyCols, keyVals, cols, vals := q.getColumnsAndValues(rec.Key.(opencdc.StructuredData), rec.Payload.After.(opencdc.StructuredData))
 	cols = append(cols, keyCols...)
 	vals = append(vals, keyVals...)
 	query := fmt.Sprintf(insertQuery, table, strings.Join(cols, ", "), q.getPlaceholders(len(cols)))
@@ -43,8 +43,8 @@ func (q *QueryBuilder) BuildInsertQuery(rec sdk.Record, table string) (string, [
 }
 
 // BuildUpdateQuery takes a record, and returns the update query statement and values representing that record.
-func (q *QueryBuilder) BuildUpdateQuery(rec sdk.Record, table string) (string, []interface{}) {
-	keyCols, keyVals, cols, vals := q.getColumnsAndValues(rec.Key.(sdk.StructuredData), rec.Payload.After.(sdk.StructuredData))
+func (q *QueryBuilder) BuildUpdateQuery(rec opencdc.Record, table string) (string, []interface{}) {
+	keyCols, keyVals, cols, vals := q.getColumnsAndValues(rec.Key.(opencdc.StructuredData), rec.Payload.After.(opencdc.StructuredData))
 	setStatement := q.pairValuesWithPlaceholder(cols, setStatementSeparator)
 	whereStatement := q.pairValuesWithPlaceholder(keyCols, whereStatementSeparator)
 	vals = append(vals, keyVals...)
@@ -53,8 +53,8 @@ func (q *QueryBuilder) BuildUpdateQuery(rec sdk.Record, table string) (string, [
 }
 
 // BuildDeleteQuery takes a record, and returns the delete query statement and values representing that record.
-func (q *QueryBuilder) BuildDeleteQuery(rec sdk.Record, table string) (string, []interface{}) {
-	keyCols, keyVals, _, _ := q.getColumnsAndValues(rec.Key.(sdk.StructuredData), nil)
+func (q *QueryBuilder) BuildDeleteQuery(rec opencdc.Record, table string) (string, []interface{}) {
+	keyCols, keyVals, _, _ := q.getColumnsAndValues(rec.Key.(opencdc.StructuredData), nil)
 	whereStatement := q.pairValuesWithPlaceholder(keyCols, whereStatementSeparator)
 	query := fmt.Sprintf(deleteQuery, table, whereStatement)
 	return query, keyVals
@@ -73,7 +73,7 @@ func (q *QueryBuilder) pairValuesWithPlaceholder(cols []string, separator string
 }
 
 // getColumnsAndValues returns the key columns and values, and the payload columns and values, each in a slice and in the order mentioned.
-func (q *QueryBuilder) getColumnsAndValues(key, payload sdk.StructuredData) ([]string, []interface{}, []string, []interface{}) {
+func (q *QueryBuilder) getColumnsAndValues(key, payload opencdc.StructuredData) ([]string, []interface{}, []string, []interface{}) {
 	keyColumns := make([]string, 0, len(key))
 	keyValues := make([]interface{}, 0, len(key))
 	columns := make([]string, 0, len(payload))
