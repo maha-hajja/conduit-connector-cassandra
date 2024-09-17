@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build integration
+
 package cassandra
 
 import (
@@ -22,7 +24,6 @@ import (
 	"time"
 
 	"github.com/conduitio/conduit-commons/opencdc"
-	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/gocql/gocql"
 	"github.com/matryer/is"
 )
@@ -37,9 +38,7 @@ func TestDestination_Write(t *testing.T) {
 	ctx := context.Background()
 
 	// simple connect to get a Cassandra session
-	session := simpleConnect(t, map[string]string{
-		"nodes": testNodes,
-	})
+	session := simpleConnect(t)
 	// use the simple connect session to setup for the test
 	table := setupTest(t, session)
 
@@ -143,9 +142,7 @@ func TestDestination_Data_Format(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 
-	session := simpleConnect(t, map[string]string{
-		"nodes": testNodes,
-	})
+	session := simpleConnect(t)
 	table := setupTest(t, session)
 
 	destination := NewDestination()
@@ -217,14 +214,12 @@ func TestDestination_Data_Format(t *testing.T) {
 	}
 }
 
-func simpleConnect(t *testing.T, cfg map[string]string) *gocql.Session {
-	is := is.New(t)
-	ctx := context.Background()
+func simpleConnect(t *testing.T) *gocql.Session {
+	t.Helper()
 
-	var config DestinationConfig
-	err := sdk.Util.ParseConfig(ctx, cfg, &config, NewDestination().Parameters())
-	is.NoErr(err)
-	clusterConfig := gocql.NewCluster(config.Nodes...)
+	is := is.New(t)
+
+	clusterConfig := gocql.NewCluster(strings.Split(testNodes, ",")...)
 
 	// Connect to the Cassandra cluster
 	session, err := clusterConfig.CreateSession()
