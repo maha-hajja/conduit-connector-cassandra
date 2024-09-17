@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/conduitio/conduit-commons/config"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/gocql/gocql"
 )
@@ -36,13 +38,13 @@ func NewDestination() sdk.Destination {
 	return sdk.DestinationWithMiddleware(&Destination{})
 }
 
-func (d *Destination) Parameters() map[string]sdk.Parameter {
+func (d *Destination) Parameters() config.Parameters {
 	return d.config.Parameters()
 }
 
-func (d *Destination) Configure(ctx context.Context, cfg map[string]string) error {
+func (d *Destination) Configure(ctx context.Context, cfg config.Config) error {
 	sdk.Logger(ctx).Info().Msg("Configuring Destination...")
-	err := sdk.Util.ParseConfig(cfg, &d.config)
+	err := sdk.Util.ParseConfig(ctx, cfg, &d.config, NewDestination().Parameters())
 	if err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
@@ -75,7 +77,7 @@ func (d *Destination) Open(ctx context.Context) error {
 	return nil
 }
 
-func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
+func (d *Destination) Write(ctx context.Context, records []opencdc.Record) (int, error) {
 	for i, r := range records {
 		err := d.validateStructuredRecord(r)
 		if err != nil {
@@ -104,7 +106,7 @@ func (d *Destination) Teardown(context.Context) error {
 }
 
 // handleInsert create and execute the cql query to insert a row.
-func (d *Destination) handleInsert(_ context.Context, record sdk.Record) error {
+func (d *Destination) handleInsert(_ context.Context, record opencdc.Record) error {
 	table := d.getTableName(record.Metadata)
 	query, vals := d.queryBuilder.BuildInsertQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
@@ -116,7 +118,7 @@ func (d *Destination) handleInsert(_ context.Context, record sdk.Record) error {
 }
 
 // handleUpdate create and execute the cql query to update a row.
-func (d *Destination) handleUpdate(_ context.Context, record sdk.Record) error {
+func (d *Destination) handleUpdate(_ context.Context, record opencdc.Record) error {
 	table := d.getTableName(record.Metadata)
 	query, vals := d.queryBuilder.BuildUpdateQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
@@ -128,7 +130,7 @@ func (d *Destination) handleUpdate(_ context.Context, record sdk.Record) error {
 }
 
 // handleDelete create and execute the cql query to delete a row.
-func (d *Destination) handleDelete(_ context.Context, record sdk.Record) error {
+func (d *Destination) handleDelete(_ context.Context, record opencdc.Record) error {
 	table := d.getTableName(record.Metadata)
 	query, vals := d.queryBuilder.BuildDeleteQuery(record, table)
 	err := d.session.Query(query, vals...).Exec()
@@ -140,16 +142,16 @@ func (d *Destination) handleDelete(_ context.Context, record sdk.Record) error {
 }
 
 // validateStructuredRecord return an error if the record key or payload is not structured.
-func (d *Destination) validateStructuredRecord(record sdk.Record) error {
+func (d *Destination) validateStructuredRecord(record opencdc.Record) error {
 	// delete operation doesn't need a structured payload
-	if record.Operation != sdk.OperationDelete {
+	if record.Operation != opencdc.OperationDelete {
 		// check that payload is structured
-		if _, ok := record.Payload.After.(sdk.StructuredData); !ok {
+		if _, ok := record.Payload.After.(opencdc.StructuredData); !ok {
 			return fmt.Errorf("payload should be structured data")
 		}
 	}
 	// check that key is structured for all operations
-	if _, ok := record.Key.(sdk.StructuredData); !ok {
+	if _, ok := record.Key.(opencdc.StructuredData); !ok {
 		return fmt.Errorf("key should be structured data")
 	}
 	return nil

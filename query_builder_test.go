@@ -17,7 +17,7 @@ package cassandra
 import (
 	"testing"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
 )
 
@@ -39,10 +39,10 @@ func TestQueryBuilder_Placeholders(t *testing.T) {
 func TestQueryBuilder_Insert(t *testing.T) {
 	is := is.New(t)
 	builder := QueryBuilder{}
-	rec := sdk.Record{
-		Key: sdk.StructuredData{"id": "6"},
-		Payload: sdk.Change{
-			After: sdk.StructuredData{
+	rec := opencdc.Record{
+		Key: opencdc.StructuredData{"id": "6"},
+		Payload: opencdc.Change{
+			After: opencdc.StructuredData{
 				"age": 22,
 			},
 		},
@@ -55,10 +55,10 @@ func TestQueryBuilder_Insert(t *testing.T) {
 func TestQueryBuilder_Update(t *testing.T) {
 	is := is.New(t)
 	builder := QueryBuilder{}
-	rec := sdk.Record{
-		Key: sdk.StructuredData{"id": "6"},
-		Payload: sdk.Change{
-			After: sdk.StructuredData{
+	rec := opencdc.Record{
+		Key: opencdc.StructuredData{"id": "6"},
+		Payload: opencdc.Change{
+			After: opencdc.StructuredData{
 				"age": 33,
 				"id":  "6", // should be ignored
 			},
@@ -72,10 +72,10 @@ func TestQueryBuilder_Update(t *testing.T) {
 func TestQueryBuilder_Delete(t *testing.T) {
 	is := is.New(t)
 	builder := QueryBuilder{}
-	rec := sdk.Record{
-		Key: sdk.StructuredData{"id": "6", "id2": "6"},
-		Payload: sdk.Change{
-			After: sdk.StructuredData{},
+	rec := opencdc.Record{
+		Key: opencdc.StructuredData{"id": "6", "id2": "6"},
+		Payload: opencdc.Change{
+			After: opencdc.StructuredData{},
 		},
 	}
 	cql, vals := builder.BuildDeleteQuery(rec, "my_table")

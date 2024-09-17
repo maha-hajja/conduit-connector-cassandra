@@ -15,9 +15,8 @@
 package main
 
 import (
-	sdk "github.com/conduitio/conduit-connector-sdk"
-
 	cassandra "github.com/conduitio-labs/conduit-connector-cassandra"
+	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
 func main() {
